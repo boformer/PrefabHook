@@ -61,8 +61,14 @@ namespace PrefabHook
             }
 
             RedirectionHelper.RevertRedirect(_InitializePrefab_original, _InitializePrefab_state);
-            base.InitializePrefab();
-            RedirectionHelper.RedirectCalls(_InitializePrefab_original, _InitializePrefab_detour);
+            try
+            {
+                base.InitializePrefab();
+            }
+            finally
+            {
+                RedirectionHelper.RedirectCalls(_InitializePrefab_original, _InitializePrefab_detour);
+            }
 
             if (OnPostInitialization != null)
             {
