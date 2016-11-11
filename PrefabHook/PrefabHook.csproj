@@ -47,6 +47,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ReflectiveApi\BuildingInfoHookReflective.cs" />
     <Compile Include="Hook\BuildingInfoHook.cs" />
     <Compile Include="Hook\TransportInfoHook.cs" />
     <Compile Include="Hook\CitizenInfoHook.cs" />
