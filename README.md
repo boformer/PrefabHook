@@ -37,7 +37,7 @@ public class ModLoader : LoadingExtensionBase
 
         // register event handlers
         BuildingInfoHook.OnPreInitialization += OnPreBuildingInit;
-        BuildingInfoHook.OnPreInitialization += OnPostBuildingInit;
+        BuildingInfoHook.OnPostInitialization += OnPostBuildingInit;
         
         // deploy (after event handler registration!)
         BuildingInfoHook.Deploy();
