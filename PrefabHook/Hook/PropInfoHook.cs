@@ -1,16 +1,23 @@
 ﻿using System;
 using System.Reflection;
+using Harmony;
 using UnityEngine;
 
 namespace PrefabHook
 {
-    public class PropInfoHook : PropInfo
+    public class PropInfoHook
     {
         private static bool deployed = false;
 
-        private static RedirectCallsState _InitializePrefab_state;
-        private static MethodInfo _InitializePrefab_original;
-        private static MethodInfo _InitializePrefab_detour;
+        private static MethodInfo OriginalMethod => typeof(PropInfo).GetMethod(nameof(PropInfo.InitializePrefab),
+            BindingFlags.Instance | BindingFlags.Public);
+
+        private static MethodInfo Prefix => typeof(PropInfoHook).GetMethod(nameof(PreInitializePrefab),
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        private static MethodInfo Postfix => typeof(PropInfoHook).GetMethod(nameof(PostInitializePrefab),
+            BindingFlags.Static | BindingFlags.NonPublic);
+
 
         public static event PrefabEventHandler<PropInfo> OnPreInitialization;
         public static event PrefabEventHandler<PropInfo> OnPostInitialization;
@@ -19,13 +26,12 @@ namespace PrefabHook
         {
             if (!deployed && (OnPreInitialization != null || OnPostInitialization != null))
             {
-                _InitializePrefab_original = typeof(PropInfo).GetMethod("InitializePrefab", BindingFlags.Instance | BindingFlags.Public);
-                _InitializePrefab_detour = typeof(PropInfoHook).GetMethod("InitializePrefab", BindingFlags.Instance | BindingFlags.Public);
-                _InitializePrefab_state = RedirectionHelper.RedirectCalls(_InitializePrefab_original, _InitializePrefab_detour);
+                PrefabHookMod.Harmony.Patch(OriginalMethod, new HarmonyMethod(Prefix), new HarmonyMethod(Postfix),
+                    null);
 
                 deployed = true;
 
-                Debug.LogFormat("PrefabHook: {0} Methods detoured!", "PropInfo");
+                Debug.LogFormat("PrefabHook: {0} Methods patched with Harmony!", "PropInfo");
             }
         }
 
@@ -33,9 +39,7 @@ namespace PrefabHook
         {
             if (deployed)
             {
-                RedirectionHelper.RevertRedirect(_InitializePrefab_original, _InitializePrefab_state);
-                _InitializePrefab_original = null;
-                _InitializePrefab_detour = null;
+                PrefabHookMod.Harmony.Unpatch(OriginalMethod, HarmonyPatchType.All);
 
                 OnPreInitialization = null;
                 OnPostInitialization = null;
@@ -46,34 +50,30 @@ namespace PrefabHook
             }
         }
 
-        public new virtual void InitializePrefab()
+        private static bool PreInitializePrefab(PropInfo __instance)
         {
             if (OnPreInitialization != null)
             {
                 try
                 {
-                    OnPreInitialization(base.GetComponent<PropInfo>());
+                    OnPreInitialization(__instance);
                 }
                 catch (Exception e)
                 {
                     Debug.LogException(e);
                 }
             }
-            RedirectionHelper.RevertRedirect(_InitializePrefab_original, _InitializePrefab_state);
-            try
-            {
-                base.InitializePrefab();
-            }
-            finally
-            {
-                RedirectionHelper.RedirectCalls(_InitializePrefab_original, _InitializePrefab_detour);
-            }
 
+            return true;
+        }
+
+        private static void PostInitializePrefab(PropInfo __instance)
+        {
             if (OnPostInitialization != null)
             {
                 try
                 {
-                    OnPostInitialization(base.GetComponent<PropInfo>());
+                    OnPostInitialization(__instance);
                 }
                 catch (Exception e)
                 {
